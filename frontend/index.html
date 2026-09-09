@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATS Resume Evaluator & Match Analyzer</title>
+  <meta name="description" content="Evaluate resume PDF documents for ATS compatibility, skill overlap, keyword matching, and actionable improvements.">
+  
+  <!-- Typography: Source Serif 4 for editorial headings, Inter for clean UI -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-container">
+
+    <!-- Top Masthead Header -->
+    <header class="masthead">
+      <div class="masthead-main">
+        <div class="masthead-badge-row">
+          <span class="publication-tag">Technical Dossier & Grading</span>
+          <div id="aiStatusBadge" class="engine-badge engine-checking" title="Checking AI backend status">
+            <span class="status-indicator"></span>
+            <span id="aiStatusText" class="engine-text">Checking AI Engine...</span>
+          </div>
+        </div>
+        <h1 class="masthead-title">ATS Resume Evaluator</h1>
+        <p class="masthead-deck">
+          Upload a resume PDF and optional job description to generate an objective ATS compatibility score, identify matched vs. missing skills, and obtain concrete recommendations.
+        </p>
+      </div>
+    </header>
+
+    <!-- Main Intake Form -->
+    <main>
+      <form id="resumeForm" class="intake-form" novalidate>
+        
+        <!-- File Upload Zone -->
+        <div class="form-section">
+          <label class="section-label" for="resumeInput">Resume Document <span class="required-mark">*</span></label>
+          <div 
+            id="dropZone" 
+            class="drop-zone" 
+            tabindex="0" 
+            role="button" 
+            aria-label="Upload resume PDF. Drag and drop file or press Enter to browse."
+          >
+            <input 
+              type="file" 
+              id="resumeInput" 
+              name="resume" 
+              accept=".pdf,application/pdf" 
+              class="file-input-hidden"
+              aria-hidden="true"
+            >
+            
+            <div id="dropZonePrompt" class="drop-zone-content">
+              <svg class="drop-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="12"></line>
+                <polyline points="9 15 12 12 15 15"></polyline>
+              </svg>
+              <div class="drop-text-group">
+                <p class="drop-title">Select or drag & drop resume PDF</p>
+                <p class="drop-subtitle">Only PDF documents up to 10 MB are accepted</p>
+              </div>
+            </div>
+
+            <div id="filePreview" class="file-preview hidden">
+              <div class="file-info-group">
+                <svg class="pdf-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <div>
+                  <p id="fileNameDisplay" class="file-name">filename.pdf</p>
+                  <p id="fileSizeDisplay" class="file-meta">0 KB</p>
+                </div>
+              </div>
+              <button type="button" id="removeFileBtn" class="remove-btn" title="Remove selected file">
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Job Description Field -->
+        <div class="form-section">
+          <div class="section-label-row">
+            <label class="section-label" for="jobDescription">Target Job Description <span class="optional-mark">(Optional)</span></label>
+            <button type="button" id="clearJobBtn" class="subtle-link hidden">Clear</button>
+          </div>
+          <p class="section-hint">Paste the target position requirements to evaluate keyword precision, compute skill match rates, and highlight missing skills.</p>
+          <textarea 
+            id="jobDescription" 
+            name="jobDescription" 
+            class="job-textarea" 
+            rows="6" 
+            placeholder="e.g. Senior Software Engineer requiring 4+ years of React, Node.js, PostgreSQL, AWS, and experience leading Agile development teams..."
+          ></textarea>
+        </div>
+
+        <!-- Error Feedback Banner -->
+        <div id="errorBanner" class="error-banner hidden" role="alert" aria-live="assertive">
+          <svg class="error-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span id="errorMessage" class="error-text">An error occurred.</span>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="form-actions">
+          <button type="submit" id="analyzeBtn" class="btn-submit">
+            <span class="btn-spinner hidden" id="btnSpinner"></span>
+            <span id="btnText">Evaluate Resume</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- RESULTS REPORT SECTION -->
+      <section id="resultsSection" class="results-report hidden" aria-live="polite">
+        
+        <!-- Report Header Bar -->
+        <div class="report-header">
+          <div class="report-meta-grid">
+            <div class="meta-item">
+              <span class="meta-label">Document:</span>
+              <span id="metaFileName" class="meta-value">resume.pdf</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Length:</span>
+              <span id="metaLength" class="meta-value">0 words · 1 page</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Grading Engine:</span>
+              <span id="metaEngine" class="meta-value">Deterministic Keyword Analysis</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Date Evaluated:</span>
+              <span id="metaDate" class="meta-value">Today</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Score & Executive Summary Hero -->
+        <div class="report-hero">
+          <!-- Radial ATS Score Dial -->
+          <div class="score-card">
+            <span class="card-heading">ATS Compatibility Score</span>
+            <div class="dial-container">
+              <svg class="dial-svg" viewBox="0 0 160 160">
+                <!-- Background Track -->
+                <circle 
+                  class="dial-track" 
+                  cx="80" 
+                  cy="80" 
+                  r="66" 
+                  stroke-width="12"
+                />
+                <!-- Progress Value Arc -->
+                <circle 
+                  id="dialProgress" 
+                  class="dial-progress" 
+                  cx="80" 
+                  cy="80" 
+                  r="66" 
+                  stroke-width="12" 
+                  stroke-dasharray="414.69" 
+                  stroke-dashoffset="414.69"
+                />
+              </svg>
+              <div class="dial-content">
+                <span id="scoreNumber" class="score-number">0</span>
+                <span class="score-denominator">/ 100</span>
+              </div>
+            </div>
+            <div class="score-tier-group">
+              <span id="scoreTierBadge" class="score-tier">Evaluating</span>
+              <p id="scoreTierDescription" class="score-tier-sub">Detailed breakdown below</p>
+            </div>
+          </div>
+
+          <!-- Tailored Summary / Pitch Line -->
+          <div class="summary-card">
+            <div class="summary-card-header">
+              <span class="card-heading">Tailored Executive Summary</span>
+              <button type="button" id="copySummaryBtn" class="copy-btn" title="Copy to clipboard">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span id="copyBtnText">Copy</span>
+              </button>
+            </div>
+            <blockquote id="tailoredSummaryText" class="summary-quote">
+              Evaluating candidate summary...
+            </blockquote>
+            <p class="summary-note">Use or adapt this 1–2 sentence positioning statement at the top of your resume or in recruiter outreach notes.</p>
+          </div>
+        </div>
+
+        <!-- ATS Scoring Breakdown Details -->
+        <div class="report-section">
+          <h2 class="section-title">Score Breakdown by Evaluated Criteria</h2>
+          <div id="scoreBreakdownList" class="breakdown-list">
+            <!-- Dynamically populated criteria items -->
+          </div>
+        </div>
+
+        <!-- Skills Comparison Grid -->
+        <div class="report-section">
+          <h2 class="section-title">Skills & Taxonomy Analysis</h2>
+          <div class="skills-grid">
+            
+            <!-- Matched Skills -->
+            <div class="skill-column matched-column">
+              <div class="skill-column-header">
+                <span class="skill-column-title">
+                  <span class="tag-indicator indicator-matched"></span> Matched Target Skills
+                </span>
+                <span id="matchedCountBadge" class="count-pill">0</span>
+              </div>
+              <p class="skill-column-desc">Skills identified in both your resume and the target job posting.</p>
+              <div id="matchedSkillsList" class="tags-container">
+                <span class="empty-tag-note">No job description provided or no overlap found.</span>
+              </div>
+            </div>
+
+            <!-- Missing Skills -->
+            <div class="skill-column missing-column">
+              <div class="skill-column-header">
+                <span class="skill-column-title">
+                  <span class="tag-indicator indicator-missing"></span> Missing Target Skills
+                </span>
+                <span id="missingCountBadge" class="count-pill">0</span>
+              </div>
+              <p class="skill-column-desc">Keywords present in the job description that were not detected in your resume.</p>
+              <div id="missingSkillsList" class="tags-container">
+                <span class="empty-tag-note">All identified target keywords matched or none specified.</span>
+              </div>
+            </div>
+
+            <!-- All Resume Skills -->
+            <div class="skill-column full-width-column">
+              <div class="skill-column-header">
+                <span class="skill-column-title">
+                  <span class="tag-indicator indicator-neutral"></span> All Detected Resume Competencies
+                </span>
+                <span id="resumeSkillsCountBadge" class="count-pill">0</span>
+              </div>
+              <p class="skill-column-desc">Technical skills, frameworks, tools, and methodologies detected in your document.</p>
+              <div id="allResumeSkillsList" class="tags-container">
+                <!-- Dynamically populated tags -->
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Strengths & Suggestions Columns -->
+        <div class="report-columns">
+          <!-- Strengths -->
+          <div class="report-column">
+            <h2 class="section-title">Candidate Strengths</h2>
+            <ul id="strengthsList" class="editorial-list strengths-list">
+              <!-- Dynamically populated -->
+            </ul>
+          </div>
+
+          <!-- Suggestions -->
+          <div class="report-column">
+            <h2 class="section-title">Strategic Improvements</h2>
+            <ul id="suggestionsList" class="editorial-list suggestions-list">
+              <!-- Dynamically populated -->
+            </ul>
+          </div>
+        </div>
+
+        <!-- Report Footer / Action Bar -->
+        <div class="report-actions">
+          <button type="button" id="resetReportBtn" class="btn-secondary">
+            Evaluate Another Resume
+          </button>
+          <button type="button" id="printReportBtn" class="btn-secondary">
+            Print / Save Report (PDF)
+          </button>
+        </div>
+
+      </section>
+    </main>
+
+    <!-- Page Footer -->
+    <footer class="page-footer">
+      <p>ATS Resume Evaluator · Deterministic Scoring & Semantic Analysis · Confidential In-Memory Processing</p>
+    </footer>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
