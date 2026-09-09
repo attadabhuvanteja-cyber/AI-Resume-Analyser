@@ -1,4 +1,4 @@
-# ATS Resume Evaluator & AI Match Analyzer
+ # ATS Resume Evaluator & AI Match Analyzer
 
 A full-stack web application that parses a resume PDF, optionally compares it against a target job description, and provides an objective, deterministic ATS compatibility score (0–100), detailed rubric breakdown, matched vs. missing skills analysis, actionable recommendations, profile strengths, and a tailored executive summary line.
 
@@ -169,3 +169,4 @@ Returns:
   "tailoredSummary": "Results-driven professional with demonstrated expertise in React, Node.js, and AWS..."
 }
 ```
+
